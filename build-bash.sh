@@ -95,7 +95,7 @@ case $ARCH in
   x86|i686) target_host=i686-linux-android;;
   *) echored "Invalid ARCH entered!"; usage;;
 esac
-[ -z $API ] && API=21
+[ -z $API ] && API=17
 [ $API -eq $API ] || { echored "Invalid API entered. Integers only!"; usage; }
 
 setup_bash
