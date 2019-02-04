@@ -12,7 +12,7 @@ usage () {
   echogreen "VER argument below must be applied with check"
   echored "Otherwise, Valid arguments are:"
   echogreen "NDK=      (Default: r18b)"
-  echogreen "VER=      (Default: 4.4)"
+  echogreen "VER=      (Default: 5.0)"
   echogreen "ARCH=     (Default: arm) (Valid Arch values: arm, arm64, aarch64, x86, i686, x86_64)"
   echogreen "API=      (Default: 17)"
   echored "Note that the minimum API for arch64 and x86_64 is 21 (Lollipop)!"
