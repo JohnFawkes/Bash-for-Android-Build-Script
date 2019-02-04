@@ -14,7 +14,7 @@ usage () {
   echogreen "NDK=      (Default: r18b)"
   echogreen "VER=      (Default: 5.0)"
   echogreen "ARCH=     (Default: arm) (Valid Arch values: arm, arm64, aarch64, x86, i686, x86_64)"
-  echogreen "API=      (Default: 17)"
+  echogreen "API=      (Default: 17, 21 for 64bit)"
   echored "Note that the minimum API for arch64 and x86_64 is 21 (Lollipop)!"
   echored "Note that case insensitive file systems such as NTFS will have files overwritten during NDK extraction!"
   echored "It's recommended to use a case senstivie file system such as ext4 instead although this has seemingly no impact in this case"
@@ -89,13 +89,12 @@ esac
 PVER=$(echo $VER | sed 's/\.//')
 [ -z $ARCH ] && ARCH=arm
 case $ARCH in
-  arm64|aarch64) target_host=aarch64-linux-android;;
-  arm) target_host=arm-linux-androideabi;;
-  x86_64) target_host=x86_64-linux-android;;
-  x86|i686) target_host=i686-linux-android;;
+  arm64|aarch64) target_host=aarch64-linux-android; [ -z $API ] && API=21;;
+  arm) target_host=arm-linux-androideabi; [ -z $API ] && API=17;;
+  x86_64) target_host=x86_64-linux-android; [ -z $API ] && API=21;;
+  x86|i686) target_host=i686-linux-android; [ -z $API ] && API=17;;
   *) echored "Invalid ARCH entered!"; usage;;
 esac
-[ -z $API ] && API=17
 [ $API -eq $API ] || { echored "Invalid API entered. Integers only!"; usage; }
 
 setup_bash
