@@ -1,9 +1,9 @@
 #!/bin/bash
 echored () {
-	echo "${TEXTRED}$1${TEXTRESET}"
+  echo "${TEXTRED}$1${TEXTRESET}"
 }
 echogreen () {
-	echo "${TEXTGREEN}$1${TEXTRESET}"
+  echo "${TEXTGREEN}$1${TEXTRESET}"
 }
 usage () {
   echo " "
@@ -11,13 +11,8 @@ usage () {
   echogreen "To check patches are correct: check"
   echogreen "VER argument below must be applied with check"
   echored "Otherwise, Valid arguments are:"
-  echogreen "NDK=      (Default: r18b)"
   echogreen "VER=      (Default: 5.0)"
-  echogreen "ARCH=     (Default: arm) (Valid Arch values: arm, arm64, aarch64, x86, i686, x86_64)"
-  echogreen "API=      (Default: 17, 21 for 64bit)"
-  echored "Note that the minimum API for arch64 and x86_64 is 21 (Lollipop)!"
-  echored "Note that case insensitive file systems such as NTFS will have files overwritten during NDK extraction!"
-  echored "It's recommended to use a case senstivie file system such as ext4 instead although this has seemingly no impact in this case"
+  echogreen "ARCH=     (Default: arm) (Valid Arch values: arm, arm64, aarch64, x86, i686, x64, x86_64)"
   echo " "
   exit 1
 }
@@ -50,6 +45,7 @@ apply_patches() {
     [ $? -ne 0 ] && { echored "Patching failed! Did you verify line numbers? See README for more info"; exit 1; }
     rm -f $PFILE
   done
+  cd ..
 }
 setup_bash() {
   mkdir $DIR/bash_android 2>/dev/null
@@ -64,13 +60,15 @@ TEXTRESET=$(tput sgr0)
 TEXTGREEN=$(tput setaf 2)
 TEXTRED=$(tput setaf 1)
 DIR=`pwd`
+COMPILER=NDK
+NDK=r19b
 CHECK=false
 OIFS=$IFS; IFS=\|; 
 while true; do
   case "$1" in
     -h|--help) usage;;
     "") shift; break;;
-    NDK=*|VER=*|ARCH=*|API=*) eval $1; shift;;
+    VER=*|ARCH=*) eval $1; shift;;
     check) CHECK=true; shift;;
     *) echored "Invalid option: $1!"; usage;;
   esac
@@ -78,8 +76,6 @@ done
 IFS=$OIFS
 
 $CHECK && check_patches
-[ -z $NDK ] && NDK=r18b
-[[ $(wget -S --spider https://dl.google.com/android/repository/android-ndk-$NDK-linux-x86_64.zip 2>&1 | grep 'HTTP/1.1 200 OK') ]] || { echored "Invalid Android NDK! Check this:https://developer.android.com/ndk/downloads/ for latest versions!"; usage; }
 [ -z $VER ] && VER=5.0
 case $VER in
   5*) rm -rf $DIR/patches; cp -rf $DIR/patches_5 $DIR/patches;;
@@ -89,48 +85,61 @@ esac
 PVER=$(echo $VER | sed 's/\.//')
 [ -z $ARCH ] && ARCH=arm
 case $ARCH in
-  arm64|aarch64) target_host=aarch64-linux-android; [ -z $API ] && API=21;;
-  arm) target_host=arm-linux-androideabi; [ -z $API ] && API=17;;
-  x86_64) target_host=x86_64-linux-android; [ -z $API ] && API=21;;
-  x86|i686) target_host=i686-linux-android; [ -z $API ] && API=17;;
+  arm64|aarch64) target_host=aarch64-linux-gnu; COMPILER=LINARO;;
+  arm) target_host=arm-linux-androideabi;;
+  x64|x86_64) target_host=x86_64-linux-android;;
+  x86|i686) target_host=i686-linux-android;;
   *) echored "Invalid ARCH entered!"; usage;;
 esac
-[ $API -eq $API ] || { echored "Invalid API entered. Integers only!"; usage; }
 
 setup_bash
-
-# Set up Android NDK
-echogreen "Fetching Android NDK $NDK"
-[ -f "android-ndk-$NDK-linux-x86_64.zip" ] || wget https://dl.google.com/android/repository/android-ndk-$NDK-linux-x86_64.zip
-[ -d "android-ndk-$NDK" ] || unzip -o android-ndk-$NDK-linux-x86_64.zip
-echogreen "Setting Up Android NDK $NDK"
-python android-ndk-$NDK/build/tools/make_standalone_toolchain.py --arch $ARCH --api $API --install-dir Toolchains --force
-[ $? -ne 0 ] && { echored "Error in NDK Setup!"; exit 1; }
-
-# Add the standalone toolchain to the search path.
-export PATH=$PATH:$DIR/bash_android/Toolchains/bin
-
-# Tell configure what tools to use.
-export AR=$target_host-ar
-export AS=$target_host-clang
-export CC=$target_host-clang
-export CXX=$target_host-clang++
-export LD=$target_host-ld
-export STRIP=$target_host-strip
-
-# Tell configure what flags Android requires.
-export LDFLAGS="-static -s"
 
 # Apply bash patches - Android patches originally by Alexander Gromnitsky, ATechnoHazard, koro666, and Termux @Github
 apply_patches
 
-# Configure - valid arguments found from termux-packages and bash-on-android github repos 
-echogreen "Configuring"
-./configure --host=$target_host --disable-nls --enable-static-link --without-bash-malloc bash_cv_dev_fd=whacky bash_cv_getcwd_malloc=yes --enable-multibyte --prefix=/system
-[ $? -eq 0 ] || { echored "Configure failed!"; exit 1; }
+if [ "$COMPILER" == "NDK" ]; then
+  # Set up Android NDK
+  echogreen "Fetching Android NDK $NDK"
+  [ -f "android-ndk-$NDK-linux-x86_64.zip" ] || wget https://dl.google.com/android/repository/android-ndk-$NDK-linux-x86_64.zip
+  [ -d "android-ndk-$NDK" ] || unzip -o android-ndk-$NDK-linux-x86_64.zip
+  echogreen "Setting Up Android NDK $NDK"
+  [ -d "Toolchains-$ARCH" ] || python android-ndk-$NDK/build/tools/make_standalone_toolchain.py --arch $ARCH --api 21 --install-dir Toolchains-$ARCH --force
+
+  # Add the standalone toolchain to the search path.
+  cd bash-$VER
+  export PATH=$DIR/bash_android/Toolchains-$ARCH/bin:$PATH
+
+  # Tell configure what tools to use.
+  export AR=$target_host-ar
+  export AS=$target_host-clang
+  export CC=$target_host-clang
+  export CXX=$target_host-clang++
+  export LD=$target_host-ld
+  export STRIP=$target_host-strip
+  # Tell configure what flags Android requires.
+  export LDFLAGS="-static"
+  
+  # Configure - valid arguments found from termux-packages and bash-on-android github repos 
+  echogreen "Configuring"
+  ./configure --host=$target_host --disable-nls --enable-static-link --without-bash-malloc bash_cv_dev_fd=whacky bash_cv_getcwd_malloc=yes --enable-multibyte --enable-largefile --enable-alias --enable-history --prefix=/system
+  [ $? -eq 0 ] || { echored "Configure failed!"; exit 1; }
+else
+  # Set up Linaro gcc
+  echogreen "Setting up linaro gcc"
+  [ -f gcc-linaro-7.4.1-2019.02-x86_64_$target_host.tar.xz ] || wget https://releases.linaro.org/components/toolchain/binaries/latest-7/$target_host/gcc-linaro-7.4.1-2019.02-x86_64_$target_host.tar.xz
+  [ -d gcc-linaro-7.4.1-2019.02-x86_64_$target_host ] || tar -xf gcc-linaro-7.4.1-2019.02-x86_64_$target_host.tar.xz
+
+  # Add the standalone toolchain to the search path.
+  export PATH=$DIR/bash_android/gcc-linaro-7.4.1-2019.02-x86_64_$target_host/bin:$PATH
+  
+  # Configure - valid arguments found from termux-packages and bash-on-android github repos 
+  echogreen "Configuring"
+  ./configure --host=$target_host --disable-nls --enable-static-link --without-bash-malloc bash_cv_dev_fd=whacky bash_cv_getcwd_malloc=yes --enable-multibyte --enable-largefile --enable-alias --enable-history --prefix=/system
+  [ $? -eq 0 ] || { echored "Configure failed!"; exit 1; }
+fi
 
 # Build bash
 echogreen "Building"
 make
 
-[ $? -eq 0 ] && { mv -f bash $DIR/bash; echogreen "Bash binary built sucessfully and can be found at: $DIR"; }
+[ $? -eq 0 ] && { mv -f bash $DIR/bash; $target_host-strip $DIR/bash; echogreen "Bash binary built sucessfully and can be found at: $DIR"; }
