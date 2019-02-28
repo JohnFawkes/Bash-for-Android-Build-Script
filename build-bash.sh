@@ -121,7 +121,7 @@ if [ "$COMPILER" == "NDK" ]; then
   
   # Configure - valid arguments found from termux-packages and bash-on-android github repos 
   echogreen "Configuring"
-  ./configure --host=$target_host --disable-nls --enable-static-link --without-bash-malloc bash_cv_dev_fd=whacky bash_cv_getcwd_malloc=yes --enable-multibyte --enable-largefile --enable-alias --enable-history --prefix=/system
+  ./configure --host=$target_host --disable-nls --enable-static-link --without-bash-malloc bash_cv_dev_fd=whacky bash_cv_getcwd_malloc=yes --enable-largefile --enable-alias --enable-history --enable-readline --enable-multibyte --enable-job-control --enable-array-variables
   [ $? -eq 0 ] || { echored "Configure failed!"; exit 1; }
 else
   # Set up Linaro gcc
