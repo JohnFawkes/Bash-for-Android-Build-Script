@@ -1,6 +1,6 @@
 --- ../bash-4.4/config-top.h	Thu May 19 13:34:02 2016
 +++ config-top.h	Fri Dec 14 09:21:39 2018
-@@ -62,19 +62,29 @@
+@@ -62,16 +62,26 @@
  
  /* The default value of the PATH variable. */
  #ifndef DEFAULT_PATH_VALUE
@@ -26,11 +26,7 @@
 +#endif
  
  /* Default primary and secondary prompt strings. */
--#define PPROMPT "\\s-\\v\\$ "
-+#define PPROMPT "[\\u@\\h \\W]\\$ "
- #define SPROMPT "> "
- 
- /* Undefine this if you don't want the ksh-compatible behavior of reprinting
+ #define PPROMPT "\\s-\\v\\$ "
 @@ -84,13 +94,21 @@
  #define KSH_COMPATIBLE_SELECT
  
