@@ -87,8 +87,8 @@ PVER=$(echo $VER | sed 's/\.//')
 case $ARCH in
   arm64|aarch64) target_host=aarch64-linux-gnu; COMPILER=LINARO;;
   arm) target_host=arm-linux-androideabi;;
-  x64|x86_64) target_host=x86_64-linux-android;;
-  x86|i686) target_host=i686-linux-android;;
+  x64|x86_64) target_host=x86_64-linux-android; ARCH=x86_64;;
+  x86|i686) target_host=i686-linux-android; ARCH=x86;;
   *) echored "Invalid ARCH entered!"; usage;;
 esac
 
@@ -116,12 +116,10 @@ if [ "$COMPILER" == "NDK" ]; then
   export CXX=$target_host-clang++
   export LD=$target_host-ld
   export STRIP=$target_host-strip
-  # Tell configure what flags Android requires.
-  export LDFLAGS="-static"
   
   # Configure - valid arguments found from termux-packages and bash-on-android github repos 
   echogreen "Configuring"
-  ./configure --host=$target_host --disable-nls --enable-static-link --without-bash-malloc bash_cv_dev_fd=whacky bash_cv_getcwd_malloc=yes --enable-largefile --enable-alias --enable-history --enable-readline --enable-multibyte --enable-job-control --enable-array-variables
+  ./configure --host=$target_host --disable-nls --enable-static-link --without-bash-malloc bash_cv_dev_fd=whacky bash_cv_getcwd_malloc=yes --enable-largefile --enable-alias --enable-history --enable-readline --enable-multibyte --enable-job-control --enable-array-variables CFLAGS="-g -O2 -static" LDFLAGS="-g -O2 -static"
   [ $? -eq 0 ] || { echored "Configure failed!"; exit 1; }
 else
   # Set up Linaro gcc
@@ -130,11 +128,12 @@ else
   [ -d gcc-linaro-7.4.1-2019.02-x86_64_$target_host ] || tar -xf gcc-linaro-7.4.1-2019.02-x86_64_$target_host.tar.xz
 
   # Add the standalone toolchain to the search path.
+  cd bash-$VER
   export PATH=$DIR/bash_android/gcc-linaro-7.4.1-2019.02-x86_64_$target_host/bin:$PATH
   
   # Configure - valid arguments found from termux-packages and bash-on-android github repos 
   echogreen "Configuring"
-  ./configure --host=$target_host --disable-nls --enable-static-link --without-bash-malloc bash_cv_dev_fd=whacky bash_cv_getcwd_malloc=yes --enable-multibyte --enable-largefile --enable-alias --enable-history --prefix=/system
+  ./configure --host=$target_host --disable-nls --enable-static-link --without-bash-malloc bash_cv_dev_fd=whacky bash_cv_getcwd_malloc=yes --enable-largefile --enable-alias --enable-history --enable-readline --enable-multibyte --enable-job-control --enable-array-variables CFLAGS="-g -O2 -static" LDFLAGS="-g -O2 -static"
   [ $? -eq 0 ] || { echored "Configure failed!"; exit 1; }
 fi
 
@@ -142,4 +141,4 @@ fi
 echogreen "Building"
 make
 
-[ $? -eq 0 ] && { mv -f bash $DIR/bash; $target_host-strip $DIR/bash; echogreen "Bash binary built sucessfully and can be found at: $DIR"; }
+[ $? -eq 0 ] && { mv -f bash $DIR/bash-$ARCH; $target_host-strip $DIR/bash-$ARCH; echogreen "Bash binary built sucessfully and can be found at: $DIR"; }
