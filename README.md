@@ -1,6 +1,6 @@
 # Build Bash for Android
 
-A script that patches & cross-compiles bash for Android
+A script that patches & cross-compiles bash for Android using the Android NDK (except arm64 - see issues section below)
 
 ## Prerequisites
 
