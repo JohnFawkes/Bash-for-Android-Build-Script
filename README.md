@@ -2,6 +2,8 @@
 
 A script that patches & cross-compiles bash for Android using the Android NDK (except arm64 - see issues section below)
 
+# Deprecated - [See here for up to date build script](https://github.com/Zackptg5/GNU-Utils-For-Android-Build-Script)
+
 ## Prerequisites
 
 * Linux or Linux WSL on W10 (tested on Ubuntu WSL on W10 Pro)
